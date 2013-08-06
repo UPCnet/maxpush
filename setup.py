@@ -32,7 +32,7 @@ setup(name='maxpush',
       tests_require=requires,
       test_suite="maxpush",
       entry_points="""\
-      [paste.app_factory]
-      main = maxpush:main
+      [console_scripts]
+      maxpush = maxpush:main
       """,
       )
