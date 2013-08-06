@@ -393,6 +393,8 @@ class MAXPushConversationsConsumer(object):
         itokens = []
         atokens = []
         for token in tokens.get('items'):
+            # TODO: On production, not send notification to sender
+            # if token.get('username') != message.get('username'):
             if token.get('platform') == 'iOS':
                 itokens.append(token.get('token'))
             elif token.get('platform') == 'android':
