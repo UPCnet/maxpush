@@ -1,9 +1,11 @@
 from apnsclient import Session, Message, APNs
+from logging.config import fileConfig
+from maxclient import MaxClient
+
 import argparse
 import ConfigParser
 import json
 import logging
-from logging.config import fileConfig
 import os
 import pika
 import requests
@@ -74,6 +76,8 @@ class MAXPushConversationsConsumer(object):
         self._url = 'amqp://guest:guest@{}:5672/%2F'.format(config.get('rabbitmq', 'server'))
         self.config = config
         self.ios_session = Session()
+
+        self.load_settings()
 
     def connect(self):
         """This method connects to RabbitMQ, returning the connection handle.
@@ -383,7 +387,7 @@ class MAXPushConversationsConsumer(object):
             LOGGER.info('The message received is not a valid conversation')
             return
 
-        req = requests.get('{}/conversations/{}/tokens'.format(self.config.get('max', 'server'), conversation_id))
+        req = requests.get('{}/conversations/{}/tokens'.format(self.config.get('max', 'server'), conversation_id), headers=self.oauth2Header(self.restricted_username, self.restricted_token))
         tokens = req.json()
 
         itokens = []
@@ -415,6 +419,26 @@ class MAXPushConversationsConsumer(object):
 
     def send_android_push_notifications(self, tokens):
         pass
+
+    def load_settings(self):
+        settings_file = '{}/.max_restricted'.format(self.config.get('max', 'config_directory'))
+        if os.path.exists(settings_file):
+            settings = json.loads(open(settings_file).read())
+        else:
+            settings = {}
+
+        if 'token' not in settings or 'username' not in settings:
+            LOGGER.info("Unable to load MAX settings, please execute init_maxpush script.")
+            sys.exit(1)
+
+        self.restricted_username = settings.get('username')
+        self.restricted_token = settings.get('token')
+
+    def oauth2Header(self, username, token, scope="widgetcli"):
+        return {
+            "X-Oauth-Token": token,
+            "X-Oauth-Username": username,
+            "X-Oauth-Scope": scope}
 
 
 def main(argv=sys.argv, quiet=False):  # pragma: no cover
